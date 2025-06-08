@@ -29,7 +29,9 @@ def graphic_system(system: WirelessSystem):
             
         graf.set_xlim(0, system.size)
         graf.set_ylim(0, system.size)
-                
+        
+        fig.savefig("image/example_wireless_system.png", bbox_inches='tight', pad_inches=0)
+          
         plt.show()
 
 def graphic(output, parameter = "Access points", metric = "SINR", name = "image"): 
@@ -43,6 +45,7 @@ def graphic(output, parameter = "Access points", metric = "SINR", name = "image"
     for dict in output: 
         index = list_values.index(dict[parameter])
         value = dict[metric]
+        
         graf[index].plot(sorted(value), np.linspace(0, 1, len(value)), label=f"{title_line}: {dict[parameter_line]}")
         
         if metric == "Channel Capacity" and np.percentile(value, 10) >= 100:
@@ -55,11 +58,7 @@ def graphic(output, parameter = "Access points", metric = "SINR", name = "image"
         if metric == "Channel Capacity": 
             graf[index].axvline(x=100, color='black', linestyle='--')
         else: 
-            formatter = ScalarFormatter(useMathText=True)
-            formatter.set_powerlimits((6, 6))  # força fator 1e6
-            
-            graf[index].xaxis.set_major_formatter(formatter)
-            graf[index].ticklabel_format(axis='x', style='sci', scilimits=(6, 6))
+            graf[index].set_xscale('log')
         
         graf[index].set(title=f"{parameter}: {value}", xlabel = title_xlabel)
         graf[index].grid(True, which='major', linestyle='-', linewidth=0.75)
@@ -101,7 +100,7 @@ def graphic_percentile(output, parameter = "Access points", metric = "SINR", nam
         graf.plot(x_value, y_value, label=f"{title_line}: {value}", marker='o')
     
     graf.set_xticks(list_values_line)
-    graf.set(title=f"The 10-th percentile of CDFs of the {metric}", xlabel = parameter_line, ylabel=title_ylabel)
+    graf.set(title=" ", xlabel = parameter_line, ylabel=title_ylabel)
     graf.grid(True)
     graf.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     

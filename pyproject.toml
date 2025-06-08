@@ -10,6 +10,9 @@ packages = [{include = "wireless_system"}]
 python = "^3.11"
 numpy = "^2.2.5"
 matplotlib = "^3.10.1"
+matplotlib-multicolored-line = "^0.3.0"
+notebook = "^7.4.3"
+ipykernel = "^6.29.5"
 
 
 [build-system]
