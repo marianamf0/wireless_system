@@ -37,8 +37,10 @@ class UserEquipament:
     
     def power_received(self, access_point: AccessPoint): 
         distance = self.calculate_distance(access_point.position)
-        shadow_coefficient = access_point.shadow_coefficient[self.index]     
-        return self.power * shadow_coefficient * (self.k/(max(distance, self.d0)**(self.n)))
+        shadow_coefficient = access_point.shadow_coefficient[self.index] 
+        multipath_coefficient = access_point.multipath_coefficient[self.index, self.channel-1]
+        #print("multipath_coefficient", multipath_coefficient)
+        return self.power * shadow_coefficient * (self.k/(max(distance, self.d0)**(self.n))) * (multipath_coefficient**2)
     
     def path_gain(self, access_point: AccessPoint):     
         distance = self.calculate_distance(access_point.position)

@@ -34,7 +34,7 @@ def graphic_system(system: WirelessSystem):
           
         plt.show()
 
-def graphic(output, parameter = "Access points", metric = "SINR", name = "image"): 
+def graphic(output, parameter = "Access points", metric = "SINR", name = None): 
     list_values = sorted(list(set([dict[parameter] for dict in output])))
     parameter_line = "Channel" if parameter == "Access points" else "Access points"
     title_line = "M" if parameter_line == "Access points" else "N"
@@ -66,9 +66,38 @@ def graphic(output, parameter = "Access points", metric = "SINR", name = "image"
         graf[index].minorticks_on()
         graf[index].legend()
     
-    fig.savefig(f"image/{name}.png", bbox_inches='tight', pad_inches=0)
+    if name != None: 
+        fig.savefig(f"image/{name}.png", bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+    else:
+        plt.show()
+        
+def graphic_cdf(output, parameter = "Access points", metric = "SINR", name = None): 
+    title_line = "M" if parameter == "Access points" else "N"
+    title_xlabel = metric + " (Mbps)" if metric == "Channel Capacity" else metric
     
-    plt.close(fig)
+    fig, graf = plt.subplots(1, figsize = (6, 4))
+    
+    for dict in output: 
+        value = dict[metric]
+        graf.plot(sorted(value), np.linspace(0, 1, len(value)), label=f"{title_line}: {dict[parameter]}")
+           
+    if metric == "Channel Capacity": 
+        graf.axvline(x=100, color='black', linestyle='--')
+    else: 
+        graf.set_xscale('log')
+    
+    graf.set(title="", xlabel = title_xlabel)
+    graf.grid(True, which='major', linestyle='-', linewidth=0.75)
+    graf.grid(True, which='minor', linestyle=':', linewidth=0.5)
+    graf.minorticks_on()
+    graf.legend()
+    
+    if name != None: 
+        fig.savefig(f"image/{name}.png", bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+    else:
+        plt.show()
     
 def search(data, number_access_points:int, number_channel: int): 
     for element in data: 
@@ -76,7 +105,7 @@ def search(data, number_access_points:int, number_channel: int):
             return element
     return None
     
-def graphic_percentile(output, parameter = "Access points", metric = "SINR", name="image"): 
+def graphic_percentile(output, parameter = "Access points", metric = "SINR", name=None): 
     list_values = sorted(list(set([dict[parameter] for dict in output])))
     title_line = "M" if parameter == "Access points" else "N"
     parameter_line = "Channel" if parameter == "Access points" else "Access points"
@@ -104,6 +133,41 @@ def graphic_percentile(output, parameter = "Access points", metric = "SINR", nam
     graf.grid(True)
     graf.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     
-    fig.savefig(f"image/{name}.png", bbox_inches='tight', pad_inches=0)
+    if name != None: 
+        fig.savefig(f"image/{name}.png", bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+    else:
+        plt.show()
     
-    plt.close(fig)
+def graphic_average_sum_capacity(output, parameter = "Access points", name = None):
+
+    list_values_x = sorted(list(set([dict[parameter] for dict in output])))
+    parameter_line = "Channel" if parameter == "Access points" else "Access points"
+    list_values_line = sorted(list(set([dict[parameter_line] for dict in output])))
+    title_line = "N" if parameter == "Access points" else "M"
+    
+    fig, graf = plt.subplots(figsize = (6, 4), constrained_layout=True)
+    for line in list_values_line:
+        x_value, y_value = [], []
+        for value in list_values_x:
+            output_data = search(
+                data=output, 
+                number_access_points= value if parameter == "Access points" else line, 
+                number_channel= line if parameter == "Access points" else value
+            )
+            
+            x_value.append(value)
+            y_value.append(output_data["Average sum-capacity"]) 
+        
+        graf.plot(x_value, y_value, label=f"{title_line}: {line}", marker='o')
+    
+    graf.set_xticks(list_values_x)
+    graf.set(title=" ", xlabel = parameter, ylabel="Average sum-capacity (Mbps)")
+    graf.grid(True)
+    graf.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    
+    if name != None: 
+        fig.savefig(f"image/{name}.png", bbox_inches='tight', pad_inches=0)
+        plt.close(fig)
+    else:
+        plt.show()

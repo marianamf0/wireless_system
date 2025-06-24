@@ -2,15 +2,16 @@ import numpy as np
 from wireless_system import WirelessSystem
 from graphic import graphic, graphic_percentile, graphic_system
 
-def run(number_ap:int, number_channel: int, number_ue: int = 1, iteration:int = int(1e4), shadow_effect:bool = False, random_channel: bool = True, channel_aggregation: bool = False, power_control: bool = False, verbose: bool = False): 
+def run(number_ap:int, number_channel: int, number_ue: int = 1, iteration:int = int(1e4), shadow_effect:bool = False, 
+        random_channel: bool = True, channel_allocation: str = "", channel_aggregation: bool = False, power_control: bool = False, multipath_fading: bool = False, verbose: bool = False): 
     sinr = []
     channel_capacity = []
     sum_capacity = []
     for _ in range(iteration): 
         system = WirelessSystem(
             number_ap=number_ap, number_ue=number_ue, orthogonal_channels=number_channel, 
-            shadow_effect=shadow_effect, random_channel=random_channel, channel_aggregation=channel_aggregation, 
-            power_control=power_control
+            shadow_effect=shadow_effect, random_channel=random_channel, channel_allocation=channel_allocation, channel_aggregation=channel_aggregation, 
+            power_control=power_control, multipath_fading=multipath_fading
         )
         
         sinr_value = system.evaluate()
@@ -26,6 +27,7 @@ def run(number_ap:int, number_channel: int, number_ue: int = 1, iteration:int = 
         #     break
     
     if verbose: 
+        print("\n")
         print(f"Para M = {number_ap}, K = {number_ue}, N = {number_channel}:")
         print(f"The 10th percentile of the SINR: {np.percentile(sinr, 10)}")
         print(f"The 50th percentile of the SINR: {np.percentile(sinr, 50)}")
@@ -36,19 +38,22 @@ def run(number_ap:int, number_channel: int, number_ue: int = 1, iteration:int = 
         
         #spectrum_efficiency = [value/(100 * 1e6 * 1) for value in sum_capacity]
         
-    return sinr, channel_capacity
+    return sinr, channel_capacity, (np.mean(sum_capacity)/ 1e6)
 
-def coverage(number_ue: int = 1, list_acess_point: list = [1, 9, 36, 64]): 
+def coverage(number_ue: int = 1, list_acess_point: list = [1, 9, 36, 64], list_channel: list = [1, 2, 3], shadow_effect:bool = False, random_channel: bool = True, 
+             channel_allocation: str = "", channel_aggregation: bool = False, power_control: bool = False, multipath_fading: bool = False, verbose: bool = False): 
     output = []
     for M in list_acess_point: 
-        for N in range(1, 4): 
-            sinr, channel_capacity = run(number_ap=M, number_channel=N, number_ue=number_ue)
+        for N in list_channel: 
+            sinr, channel_capacity, sum_capacity = run(number_ap=M, number_channel=N, number_ue=number_ue, shadow_effect=shadow_effect, random_channel=random_channel, 
+                                                       channel_allocation = channel_allocation, channel_aggregation=channel_aggregation, power_control=power_control, multipath_fading=multipath_fading, verbose=verbose)
             
             output.append({
                 "Channel": N,
                 "Access points": M,
                 "SINR": sinr, 
-                "Channel Capacity": [c / 1e6 for c in channel_capacity]
+                "Channel Capacity": [c / 1e6 for c in channel_capacity], 
+                "Average sum-capacity": sum_capacity
             })
             
     return output
