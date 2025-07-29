@@ -48,7 +48,9 @@ def power_control_dpc(scenario_type:str, target_sinr=1, pmax=1, pmin=1e-3, numbe
         _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
     
     power = np.array([pmax]*number_ue)
-    value_sinr, value_power = [], [power]
+    value_power = [power]
+    value_sinr = [[calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
+                   for index_ue in range(number_ue)]]
     for _ in range(number_of_iterations): 
         sinr_ue = [calculate_sinr(gain=gain, power=value_power[-1], index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
                    for index_ue in range(number_ue)]
@@ -60,7 +62,101 @@ def power_control_dpc(scenario_type:str, target_sinr=1, pmax=1, pmin=1e-3, numbe
             
     return np.array(value_sinr), np.array(value_power)
 
-def objective_function(gain, power, associate_ap, noise_power: float = 0.01, target_sinr=0.5): 
+def power_control_with_maxsum(scenario_type:str, pmax=1, pmin=1e-3, number_of_iterations:int=50, mu=1e-2, initial_power = 1): 
+    """
+    Perform power control using a gradient-based method to maximize the sum of SINRs (Max-Sum SINR).
+
+    Args:
+        scenario_type (str): Scenario identifier ("default" or other).
+        pmax (int, optional): Maximum transmit power per UE. Defaults to 1.
+        pmin (_type_, optional): Minimum transmit power per UE. Defaults to 1e-3.
+        number_of_iterations (int, optional): Number of iterations to run. Defaults to 50.
+        mu (_type_, optional): Learning rate for gradient updates.. Defaults to 1e-2.
+        initial_power (int, optional): Initial power level for all UEs. Defaults to 1.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: 
+            - Array with SINR values over iterations (iterations x UEs).
+            - Array with power values over iterations (iterations x UEs).
+    """
+    
+    if scenario_type == "default":
+        number_ue = 2 
+        gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    else: 
+        number_ue = 4
+        _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+        
+    power = np.array([initial_power]*number_ue)
+    value_power = [power]
+    value_sinr = [[calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
+                   for index_ue in range(number_ue)]]
+    for _ in range(number_of_iterations): 
+        new_power, atual_power = [], value_power[-1]
+        for index_ue in range(number_ue):
+            aux_term = 0
+            for index in range(number_ue):
+                if index != index_ue: 
+                    aux_term += (atual_power[index]*gain[index, associate_ap[index]]*gain[index_ue, associate_ap[index_ue]])/((noise_power + sum(atual_power*gain[:, associate_ap[index]]) - atual_power[index]*gain[index, associate_ap[index]])**2)
+            
+            power_ue = atual_power[index_ue] + mu*((gain[index_ue, associate_ap[index_ue]]/(noise_power + sum(atual_power*gain[:, associate_ap[index_ue]]) - atual_power[index_ue]*gain[index_ue, associate_ap[index_ue]])) - aux_term)
+            new_power.append(max(min(power_ue, pmax), pmin))
+        
+        value_power.append(new_power)
+        value_sinr.append(
+            [calculate_sinr(gain=gain, power=new_power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) for index_ue in range(number_ue)])
+    
+    return np.array(value_sinr), np.array(value_power)
+    
+def power_control_with_maxprod(scenario_type:str, pmax=1, pmin=1e-3, number_of_iterations:int=50, mu=1e-2, initial_power = 1): 
+    """
+    Perform power control using a gradient-based method to maximize the product of SINRs (Max-Product SINR).
+
+    Args:
+        scenario_type (str): Scenario identifier ("default" or other).
+        pmax (int, optional): Maximum transmit power per UE. Defaults to 1.
+        pmin (_type_, optional): Minimum transmit power per UE. Defaults to 1e-3.
+        number_of_iterations (int, optional): Number of iterations to run. Defaults to 50.
+        mu (_type_, optional): Learning rate for gradient updates.. Defaults to 1e-2.
+        initial_power (int, optional): Initial power level for all UEs. Defaults to 1.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: 
+            - Array with SINR values over iterations (iterations x UEs).
+            - Array with power values over iterations (iterations x UEs).
+    """
+    
+    if scenario_type == "default":
+        number_ue = 2 
+        gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    else: 
+        number_ue = 4
+        _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+        
+    power = np.array([initial_power]*number_ue)
+    value_power = [power]
+    value_sinr = [[calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
+                   for index_ue in range(number_ue)]]
+    for _ in range(number_of_iterations): 
+        new_power, atual_power = [], value_power[-1]
+        for index_ue in range(number_ue):
+            aux_term = 0
+            for index in range(number_ue):
+                if index != index_ue: 
+                    aux_term += gain[index_ue, associate_ap[index_ue]]/(sum(atual_power*gain[:, associate_ap[index]]) - atual_power[index]*gain[index, associate_ap[index]]+noise_power)
+            
+            power_ue = atual_power[index_ue] + mu*((1/atual_power[index_ue]) - aux_term)
+            new_power.append(max(min(power_ue, pmax), pmin))
+        
+        value_power.append(new_power)
+        value_sinr.append(
+            [calculate_sinr(gain=gain, power=new_power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) for index_ue in range(number_ue)])
+    
+    return np.array(value_sinr), np.array(value_power)
+    
+
+
+def objective_function(scenario_type, power, target_sinr=0.5): 
     """
     Compute the squared error objective function between actual and target SINR values.
 
@@ -74,46 +170,62 @@ def objective_function(gain, power, associate_ap, noise_power: float = 0.01, tar
     Returns:
         float: Objective function value (sum of squared errors).
     """
-    
+    if scenario_type == "default":
+        number_ue = 2 
+        gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    else: 
+        number_ue = 4
+        _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+        
     sinr_ue = [calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
-               for index_ue in range(len(power))]
+               for index_ue in range(number_ue)]
     return sum((target_sinr - sinr)**2 for sinr in sinr_ue)
 
-def objective_function_J1(gain, power, associate_ap, noise_power: float = 0.01): 
+def objective_function_J1(scenario_type:str, power): 
     """
     Compute the minimum SINR among all UEs.
 
     Args:
-        gain (ndarray): Channel gain matrix.
+        scenario_type (str): 
         power (ndarray): Array of transmit powers per UE.
-        associate_ap (list or ndarray): List of associated access points per UE.
-        noise_power (float, optional): Noise power level. Default is 0.01.
 
     Returns:
         float: Minimum SINR across all UEs.
     """
+    if scenario_type == "default":
+        number_ue = 2 
+        gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    else: 
+        number_ue = 4
+        _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    
     sinr_ue = [calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
-               for index_ue in range(len(power))]
+               for index_ue in range(number_ue)]
     return min(sinr_ue)
 
-def objective_function_J2(gain, power, associate_ap, noise_power: float = 0.01): 
+def objective_function_maxsum(scenario_type, power): 
     """
     Compute the sum of SINRs across all UEs.
 
     Args:
-        gain (ndarray): Channel gain matrix.'
+        scenario_type (str): 
         power (ndarray): Array of transmit powers per UE.
-        associate_ap (list or ndarray): List of associated access points per UE.
-        noise_power (float, optional): Noise power level. Default is 0.01.
 
     Returns:
         float: Sum of SINRs.
     """
+    if scenario_type == "default":
+        number_ue = 2 
+        gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    else: 
+        number_ue = 4
+        _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    
     sinr_ue = [calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
-               for index_ue in range(len(power))]
+               for index_ue in range(number_ue)]
     return sum(sinr_ue)
 
-def objective_function_J3(gain, power, associate_ap, noise_power: float = 0.01): 
+def objective_function_J3(scenario_type, power): 
     """
     Compute the product between the minimum SINR and the sum of SINRs across all UEs.
 
@@ -126,8 +238,16 @@ def objective_function_J3(gain, power, associate_ap, noise_power: float = 0.01):
     Returns:
         float: Product of minimum SINR and sum of SINRs.
     """
+    if scenario_type == "default":
+        number_ue = 2 
+        gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    else: 
+        number_ue = 4
+        _, _, gain, associate_ap, noise_power = get_scenario(type=scenario_type)
+    
     sinr_ue = [calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power) 
-               for index_ue in range(len(power))]
+               for index_ue in range(number_ue)]
+    
     return min(sinr_ue)*sum(sinr_ue)
 
 
@@ -154,7 +274,7 @@ def control_power_fdm(scenario_type:str, target_sinr=1, pmax=1, pmin=1e-3, type_
     if type_objective == "J1": 
         objective = objective_function_J1
     elif type_objective == "J2": 
-        objective = objective_function_J2
+        objective = objective_function_maxsum
     elif type_objective == "J3": 
         objective = objective_function_J3
     
@@ -169,18 +289,18 @@ def control_power_fdm(scenario_type:str, target_sinr=1, pmax=1, pmin=1e-3, type_
     for k in range(number_of_iterations): 
         value_gradient = []
         if type_objective == "default": 
-            value_objective_function = objective_function(gain=gain, power=value_power[-1], associate_ap=associate_ap, noise_power=noise_power, target_sinr=target_sinr)  
+            value_objective_function = objective_function(scenario_type=scenario_type, power=value_power[-1], target_sinr=target_sinr)  
         else: 
-            value_objective_function = objective(gain=gain, power=value_power[-1], associate_ap=associate_ap, noise_power=noise_power)
+            value_objective_function = objective(scenario_type=scenario_type, power=value_power[-1])
              
         for index_ue in range(number_ue): 
             power_copy = (value_power[-1]).copy()
             power_copy[index_ue] += eta
             
             if type_objective == "default": 
-                new_value_objective_function = objective_function(gain=gain, power=power_copy, associate_ap=associate_ap, noise_power=noise_power, target_sinr=target_sinr) 
+                new_value_objective_function = objective_function(scenario_type=scenario_type, power=power_copy, target_sinr=target_sinr) 
             else: 
-                new_value_objective_function = objective(gain=gain, power=power_copy, associate_ap=associate_ap, noise_power=noise_power) 
+                new_value_objective_function = objective(scenario_type=scenario_type, power=power_copy) 
             
             value_gradient.append((new_value_objective_function - value_objective_function)/eta)
         
@@ -246,11 +366,11 @@ def analysis(scenario_type:str, power: list, bandwidth: float = 100e6, orthogona
         sinr = calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power)
         
         capacity = (bandwidth/orthogonal_channels)*np.log2(1 + sinr)
-        print(f"\nPower for UE {index_ue+1}: {power[index_ue]}")
+        print(f"\nPower for UE {index_ue+1}: {power[index_ue]:.4f} W")
         print(f"SINR for UE {index_ue+1}:  {sinr:.2f}")
         print(f"Channel Capacity for UE {index_ue+1}: {(capacity/1e6):.2f} Mbps")
         
         sum_capacity += capacity
         
-    print(f"\n\nSum Capacity: {(sum_capacity/1e6):.2f} Mbps")
+    print(f"\nSum Capacity: {(sum_capacity/1e6):.2f} Mbps")
     print(f"Energy Efficiency: {((sum_capacity/sum(power))/1e6):.2f} Mbits/J")
