@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from acess_point import AccessPoint
+from access_point import AccessPoint
 from user_equipament import UserEquipament
 
 def calculate_positions_ap(number_ap: int, size:int=1000): 

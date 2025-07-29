@@ -1,6 +1,6 @@
 import random
 import numpy as np
-from acess_point import AccessPoint
+from access_point import AccessPoint
 
 class UserEquipament:
     
