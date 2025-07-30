@@ -29,10 +29,10 @@ def run(number_ap:int, number_channel: int, number_ue: int = 1, iteration:int = 
     if verbose: 
         print("\n")
         print(f"Para M = {number_ap}, K = {number_ue}, N = {number_channel}:")
-        print(f"The 10th percentile of the SINR: {np.percentile(sinr, 10)}")
-        print(f"The 50th percentile of the SINR: {np.percentile(sinr, 50)}")
-        print(f"The 10th percentile of the Capacity Channel: {np.percentile(channel_capacity, 10)/1e6} Mbps")
-        print(f"The 50th percentile of the Capacity Channel: {np.percentile(channel_capacity, 50)/1e6} Mbps")
+        print(f"The 10th percentile of the SINR: {np.percentile(sinr, 10):.4f}")
+        print(f"The 50th percentile of the SINR: {np.percentile(sinr, 50):.4f}")
+        print(f"The 10th percentile of the Capacity Channel: {(np.percentile(channel_capacity, 10)/1e6):.2f} Mbps")
+        print(f"The 50th percentile of the Capacity Channel: {(np.percentile(channel_capacity, 50)/1e6):.2f} Mbps")
         print(f"Average sum-capacity to {number_ap} AP: {(np.mean(sum_capacity)/ 1e6):.2f} Mbps")
         print(f"Spectrum efficiency to {number_ap} AP: {(np.mean(sum_capacity)/(100 * 1e6 * 1)):.2f} bits/second/Hz/km²")
         

@@ -366,11 +366,11 @@ def analysis(scenario_type:str, power: list, bandwidth: float = 100e6, orthogona
         sinr = calculate_sinr(gain=gain, power=power, index_ue=index_ue, index_ap=associate_ap[index_ue], noise_power=noise_power)
         
         capacity = (bandwidth/orthogonal_channels)*np.log2(1 + sinr)
-        print(f"\nPower for UE {index_ue+1}: {power[index_ue]:.4f} W")
+        print(f"Power for UE {index_ue+1}: {power[index_ue]:.4f} W")
         print(f"SINR for UE {index_ue+1}:  {sinr:.2f}")
-        print(f"Channel Capacity for UE {index_ue+1}: {(capacity/1e6):.2f} Mbps")
+        print(f"Channel Capacity for UE {index_ue+1}: {(capacity/1e6):.2f} Mbps\n")
         
         sum_capacity += capacity
         
-    print(f"\nSum Capacity: {(sum_capacity/1e6):.2f} Mbps")
+    print(f"Sum Capacity: {(sum_capacity/1e6):.2f} Mbps")
     print(f"Energy Efficiency: {((sum_capacity/sum(power))/1e6):.2f} Mbits/J")
