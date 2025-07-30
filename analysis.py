@@ -27,8 +27,7 @@ def run(number_ap:int, number_channel: int, number_ue: int = 1, iteration:int = 
         #     break
     
     if verbose: 
-        print("\n")
-        print(f"Para M = {number_ap}, K = {number_ue}, N = {number_channel}:")
+        print(f"\nPara M = {number_ap}, K = {number_ue}, N = {number_channel}:")
         print(f"The 10th percentile of the SINR: {np.percentile(sinr, 10):.4f}")
         print(f"The 50th percentile of the SINR: {np.percentile(sinr, 50):.4f}")
         print(f"The 10th percentile of the Capacity Channel: {(np.percentile(channel_capacity, 10)/1e6):.2f} Mbps")
